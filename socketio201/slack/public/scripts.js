@@ -1,21 +1,20 @@
 const socket = io("http://localhost:9000")
-const socket2 = io("http://localhost:9000/admin")
+let nsSocket = "";
+// Listen to all nsList
+socket.on("nsList", nsData => {
+    let namespacesDiv = document.querySelector(".namespaces");
+    namespacesDiv.innerHTML = "";
 
-socket.on("messageFromServer", dataFromServer => {
-    console.log(dataFromServer)
-    socket.emit("messageToServer", { data: "This is from client!" })
-})
+    nsData.forEach(ns => {
+        namespacesDiv.innerHTML += `<div class="namespace" ns="${ns.endpoint}"><img src="${ns.img}"/></div>`
+    })
 
-socket.on("joined", msg => {
-    console.log(msg)
-})
+    // add a click listener for each ns
+    Array.from(document.getElementsByClassName("namespace")).forEach(elem => {
+        elem.addEventListener("click", e => {
+            const nsEndpoint = elem.getAttribute("ns");
+        })
+    })
 
-socket2.on("welcome", dataFromServer => {
-    console.log(dataFromServer)
-})
-
-document.querySelector("#message-form").addEventListener("submit", (event) => {
-    event.preventDefault();
-    const newMsg = document.querySelector("#user-message").value;
-    socket.emit("newMessageToServer", { text: newMsg });
+    joinNs("/wiki")
 })

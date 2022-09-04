@@ -8,16 +8,56 @@ app.use(express.static(__dirname + "/public"))
 
 const expressServer = app.listen(9000)
 const io = socketio(expressServer);
+
 io.on("connection", (socket) => {
-    socket.emit("messageFromServer", { data: "Welcome to the socket.io server" })
-    socket.on("messageToServer", dataFromClient => {
-        console.log(dataFromClient)
+    // build an array to send back with the img and endpoint on each ns
+    let nsData = namespaces.map(ns => {
+        return {
+            img: ns.img,
+            endpoint: ns.endpoint
+        }
     })
 
-    socket.join("level1")
-    socket.to("level1").emit("joined", "I have joined level1 room")
+    // send the ns data back to the client, socket not IO
+    socket.emit("nsList", nsData)
 })
 
-io.of("/admin").on("connection", socket => {
-    io.of("/admin").emit("welcome", "Welcome to admin");
+namespaces.forEach(namespace => {
+    io.of(namespace.endpoint).on("connect", nsSocket => {
+        console.log(`${nsSocket.id} joined ${namespace.endpoint}`)
+        // A socket has connected to one of chat namespaces
+        // Send that ns info back
+
+        nsSocket.emit("nsRoomLoad", namespaces[0].rooms)
+        nsSocket.on("joinRoom", (roomToJoin, numberOfUserCb) => {
+            // Joins specific room
+            nsSocket.join(roomToJoin)
+            // numberOfUserCb(2)
+
+            const nsRoom = namespaces[0].rooms.find(room => {
+                return room.roomTitle === roomToJoin
+            })
+
+            nsSocket.emit("historyCatchUp", nsRoom.history)
+            const roomsize = io.of("/wiki").to(roomToJoin).allSockets().size;
+            // console.log(io.of("/wiki").sockets.size)
+            io.of("/wiki").to(roomToJoin).emit("updateMembers", roomsize)
+        })
+        nsSocket.on("newMessageToServer", msg => {
+            console.log(msg)
+            const fullMsg = {
+                text: msg.text,
+                time: Date.now(),
+                username: "test",
+                avatar: "https://via.placeholder.com/30"
+            }
+            // Send this msg to all sockets that are in a room that this socket is in
+            const roomTitle =[...nsSocket.rooms][1];
+            const nsRoom = namespaces[0].rooms.find(room => {
+                return room.roomTitle === roomTitle
+            })
+            nsRoom.addMessage(fullMsg)
+            io.of("/wiki").to(roomTitle).emit("messageToClients", fullMsg)
+        })
+    })
 })
