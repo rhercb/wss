@@ -1,4 +1,8 @@
 function joinNs(endpoint) {
+    if (nsSocket) {
+        nsSocket.close();
+        document.querySelector("#user-input").removeEventListener("click", formSubmition)
+    }
     nsSocket = io(`http://localhost:9000${endpoint}`);
     nsSocket.on("nsRoomLoad", nsRooms => {
         let roomList = document.querySelector(".room-list")
@@ -16,7 +20,7 @@ function joinNs(endpoint) {
         let roomNodes = document.getElementsByClassName("room")
         Array.from(roomNodes).forEach(elem => {
             elem.addEventListener("click", e => {
-
+                joinRoom(e.target.innetText)
             })
         })
 
@@ -31,11 +35,13 @@ function joinNs(endpoint) {
         document.querySelector("#messages").innerHTML += buildHtml(msg)
     })
 
-    document.querySelector(".message-form").addEventListener("submit", (event) => {
-        event.preventDefault();
-        const newMsg = document.querySelector("#user-message").value;
-        nsSocket.emit("newMessageToServer", { text: newMsg });
-    })
+    document.querySelector(".message-form").addEventListener("submit", e => formSubmition(e))
+}
+
+function formSubmition(event) {
+    event.preventDefault();
+    const newMsg = document.querySelector("#user-message").value;
+    nsSocket.emit("newMessageToServer", { text: newMsg });
 }
 
 function buildHtml(msg) {

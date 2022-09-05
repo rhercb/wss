@@ -30,6 +30,7 @@ namespaces.forEach(namespace => {
 
         nsSocket.emit("nsRoomLoad", namespaces[0].rooms)
         nsSocket.on("joinRoom", (roomToJoin, numberOfUserCb) => {
+            // nsSocket.leave([...nsSocket.rooms][1]);
             // Joins specific room
             nsSocket.join(roomToJoin)
             // numberOfUserCb(2)
@@ -38,10 +39,10 @@ namespaces.forEach(namespace => {
                 return room.roomTitle === roomToJoin
             })
 
-            nsSocket.emit("historyCatchUp", nsRoom.history)
-            const roomsize = io.of("/wiki").to(roomToJoin).allSockets().size;
+            // nsSocket.emit("historyCatchUp", nsRoom.history)
+            const roomsize = io.of(namespace.endpoint).to(roomToJoin).allSockets().size;
             // console.log(io.of("/wiki").sockets.size)
-            io.of("/wiki").to(roomToJoin).emit("updateMembers", roomsize)
+            io.of(namespace.endpoint).to(roomToJoin).emit("updateMembers", roomsize)
         })
         nsSocket.on("newMessageToServer", msg => {
             console.log(msg)
@@ -52,12 +53,12 @@ namespaces.forEach(namespace => {
                 avatar: "https://via.placeholder.com/30"
             }
             // Send this msg to all sockets that are in a room that this socket is in
-            const roomTitle =[...nsSocket.rooms][1];
-            const nsRoom = namespaces[0].rooms.find(room => {
+            const roomTitle = [...nsSocket.rooms][1];
+            const nsRoom = namespace.rooms.find(room => {
                 return room.roomTitle === roomTitle
             })
             nsRoom.addMessage(fullMsg)
-            io.of("/wiki").to(roomTitle).emit("messageToClients", fullMsg)
+            io.of(namespace.endpoint).to(roomTitle).emit("messageToClients", fullMsg)
         })
     })
 })
